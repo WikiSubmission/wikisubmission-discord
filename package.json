@@ -1,0 +1,34 @@
+{
+  "name": "wikisubmission-discord",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rimraf ./build",
+    "build": "npm run clean && tsc",
+    "start": "npm run build && node build/entrypoint/index.js $*",
+    "docker-build": "docker build -t wikisubmission-discord .",
+    "docker": "docker stop wikisubmission-discord-container || true && docker rm wikisubmission-discord-container || true && npm run docker-build && docker run -p 3000:3000 -p 3001:3001 -p 3002:3002 -p 3003:3003 -p 3004:3004 --name wikisubmission-discord-container wikisubmission-discord",
+    "format": "npx prettier . --write",
+    "lint": "tslint -p tsconfig.json -c tslint.json 'src/**/*.ts'",
+    "generate-types": "npx supabase gen types --lang=typescript --project-id uunhgbgnjwcdnhmgadra --schema public > src/types/generated/database.types.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "WikiSubmission Developers",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@fastify/reply-from": "^11.0.1",
+    "@supabase/supabase-js": "^2.45.4",
+    "@types/node": "^22.7.4",
+    "discord.js": "^14.16.2",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.0.0",
+    "minimist": "^1.2.8",
+    "node-cache": "^5.1.2",
+    "supabase": "^1.200.3"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5"
+  }
+}
