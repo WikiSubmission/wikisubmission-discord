@@ -10,8 +10,8 @@ import { getCliParams } from '../utils/get-cli-params';
 import { DiscordScheduledAction } from '../types/WScheduledAction';
 
 export class WBotManager {
-  static public = new this('PUBLIC');
-  static private = new this('PRIVATE');
+  public static public = new this('PUBLIC');
+  public static private = new this('PRIVATE');
 
   public type: 'PRIVATE' | 'PUBLIC';
   public client: Client;
