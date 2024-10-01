@@ -63,116 +63,66 @@ export class FileUtils {
   }
 
   static async getDefaultExportsFromDirectory<T>(
-    directoryInServicesFolder: string,
-    doNotExecuteDefaultExport?: boolean,
-    ignoreChildrenDirectories: boolean = false,
-    targetFiles?: string[],
+    directoryPath: string,
+    opts?: {
+      enforcePrefix?: string;
+      ignoreChildrenDirectories?: boolean;
+    },
   ): Promise<T[]> {
-    let targetDirectory = path.join(
-      __dirname,
-      '../../src',
-      directoryInServicesFolder.startsWith('/')
-        ? directoryInServicesFolder
-        : `/${directoryInServicesFolder}`,
-    );
+    try {
+      const targetDirectory = path.join(
+        __dirname,
+        `../../${process.versions?.tsnode ? "src" : "build"}`,
+        directoryPath.startsWith('/') ? directoryPath : `/${directoryPath}`,
+      );
 
-    if (!fs.existsSync(targetDirectory)) {
-      // Perhaps the full path was provided. Try using that instead.
-      targetDirectory = directoryInServicesFolder;
-      if (!fs.existsSync(directoryInServicesFolder)) {
-        MainServer.log.fatal(`${targetDirectory} does not exist`);
+      if (!fs.existsSync(targetDirectory)) {
         return [];
       }
-    }
 
-    const exports: T[] = [];
+      const exports: T[] = [];
 
-    async function readDirectory(
-      directory: string,
-      isRoot: boolean,
-    ): Promise<void> {
-      const files = fs.readdirSync(directory);
-      for (const file of files) {
-        const filePath = path.join(directory, file);
+      const allFilesInTargetDirectory = fs.readdirSync(targetDirectory);
 
-        if (
-          targetFiles &&
-          !targetFiles.some((targetFile) =>
-            filePath.toLowerCase().includes(targetFile.toLowerCase()),
-          )
-        ) {
-          continue;
-        }
-
-        if (file.startsWith('_') && !directoryInServicesFolder.includes('_')) {
-          continue;
-        }
-
-        const stats = fs.statSync(filePath);
-
-        if (stats.isDirectory()) {
-          if (isRoot || !ignoreChildrenDirectories) {
-            await readDirectory(filePath, false);
+      for (const file of allFilesInTargetDirectory) {
+        if (opts?.enforcePrefix) { 
+          if (!file.startsWith(opts.enforcePrefix)) { 
+            continue;
           }
-        } else if (stats.isFile()) {
-          try {
-            const module = filePath.endsWith('.js')
-              ? await import(filePath)
-              : await FileUtils.importTsModule(filePath);
+        }
+        const filePath = path.join(targetDirectory, file);
+        if (opts?.ignoreChildrenDirectories && (file.split("/").length - 1) > 1) { 
+          continue;
+        }
+        const fileInfo = fs.statSync(filePath);
+        if (fileInfo.isDirectory()) {
+          MainServer.log.warn(
+            `Warning: "${filePath}" is a directory, not a file path`,
+          );
+          continue;
+        }
+        if (fileInfo.isFile()) {
+          const fileModule = await import(filePath);
+          const defaultExport = fileModule.default;
 
-            const defaultExport = module.default;
-
-            if (typeof defaultExport === 'object') {
-              if (doNotExecuteDefaultExport) {
-                const result = filePath.endsWith('js')
-                  ? defaultExport.default
-                  : defaultExport.default?.default;
-
-                if (result) {
-                  exports.push(result);
-                }
-              } else {
-                const result = filePath.endsWith('js')
-                  ? await defaultExport.default()
-                  : await defaultExport.default?.default();
-                if (result) {
-                  exports.push(result);
-                }
-              }
+          if (defaultExport && typeof defaultExport === 'object') {
+            const result = await defaultExport.default();
+            if (result) {
+              exports.push(result);
             } else {
-              MainServer.log.error(
-                `Unexpected default export in "${filePath}"`,
+              MainServer.log.warn(
+                `Warning: "${filePath}" seems to have no default export`,
               );
             }
-          } catch (error: any) {
-            MainServer.log.warn(
-              `Error importing module "${filePath}": ${error.message || '--'}`,
-            );
           }
         }
       }
+
+      return exports;
+    } catch (error: any) {
+      MainServer.log.error(`Failed to get default exports in directory "${directoryPath}": ${error.message || "--"}`);
+      return [];
     }
-
-    await readDirectory(targetDirectory, true);
-    return exports;
-  }
-
-  private static importTsModule<T = any>(servicePath: string): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const child = spawn('ts-node', [servicePath], { stdio: 'inherit' });
-
-      child.on('error', (err) => {
-        reject(err);
-      });
-
-      child.on('exit', (code) => {
-        if (code === 0) {
-          resolve(require(servicePath));
-        } else {
-          reject(new Error(`Failed to import module: ${servicePath}`));
-        }
-      });
-    });
   }
 
   static async createFileFromStream({
