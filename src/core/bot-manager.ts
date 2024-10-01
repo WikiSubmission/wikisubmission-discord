@@ -7,7 +7,7 @@ import { WEventListener } from '../types/WEventListener';
 import { FileUtils } from '../utils/file-utils';
 import { parseDiscordError } from '../utils/parse-discord-error';
 import { getCliParams } from '../utils/get-cli-params';
-import { DiscordScheduledAction } from '../types/WScheduledAction';
+import { WScheduledAction } from '../types/WScheduledAction';
 
 export class WBotManager {
   public static public = new this('PUBLIC');
@@ -15,6 +15,10 @@ export class WBotManager {
 
   public type: 'PRIVATE' | 'PUBLIC';
   public client: Client;
+
+  public slashCommands: WSlashCommand[] = [];
+  public eventListeners: WEventListener[] = [];
+  public scheduledActions: WScheduledAction[] = [];
 
   constructor(type: WBotManager['type']) {
     this.type = type;
@@ -99,9 +103,16 @@ export class WBotManager {
       return;
     }
 
-    const slashCommands = await this.getSlashCommands();
+    this.slashCommands =
+      this.type === 'PUBLIC'
+        ? await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
+            '/bot-public/slash-commands',
+          )
+        : await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
+            '/bot-private/slash-commands',
+          );
 
-    if (slashCommands.length === 0) {
+    if (this.slashCommands.length === 0) {
       MainServer.log.info(`No slash commands found`);
       return;
     }
@@ -113,10 +124,10 @@ export class WBotManager {
     if (this.type === 'PUBLIC') {
       try {
         await rest.put(Routes.applicationCommands(clientId), {
-          body: slashCommands,
+          body: this.slashCommands,
         });
         MainServer.log.info(
-          `Private Bot Commands Synced: ${slashCommands
+          `Private Bot Commands Synced: ${this.slashCommands
             .map((c) => `/${c.name}`)
             .join(', ')}`,
         );
@@ -134,7 +145,7 @@ export class WBotManager {
             DiscordServers.Submission.id,
           ),
           {
-            body: slashCommands,
+            body: this.slashCommands,
           },
         );
         await rest.put(
@@ -143,11 +154,11 @@ export class WBotManager {
             DiscordServers.WikiSubmissionDevelopers.id,
           ),
           {
-            body: slashCommands,
+            body: this.slashCommands,
           },
         );
         MainServer.log.info(
-          `Private Bot Commands Synced: ${slashCommands
+          `Private Bot Commands Synced: ${this.slashCommands
             .map((c) => `/${c.name}`)
             .join(', ')}`,
         );
@@ -157,28 +168,22 @@ export class WBotManager {
     }
   }
 
-  async getSlashCommands(): Promise<WSlashCommand[]> {
-    const slashCommands =
+  private async listenToClientEvents(): Promise<void> {
+    this.eventListeners =
       this.type === 'PUBLIC'
-        ? await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
-            '/bot-public/slash-commands',
+        ? await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
+            '/bot-public/event-listeners',
           )
-        : await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
-            '/bot-private/slash-commands',
+        : await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
+            '/bot-private/event-listeners',
           );
 
-    return slashCommands;
-  }
-
-  private async listenToClientEvents(): Promise<void> {
-    const eventListeners = await this.getEventListeners();
-
-    if (eventListeners.length === 0) {
+    if (this.eventListeners.length === 0) {
       MainServer.log.info(`No event listeners found`);
       return;
     }
 
-    for (const eventListener of eventListeners) {
+    for (const eventListener of this.eventListeners) {
       this.client[eventListener.once ? 'once' : 'on'](
         eventListener.name,
         async () => {
@@ -192,49 +197,32 @@ export class WBotManager {
       );
     }
     MainServer.log.info(
-      `Listening for events: ${eventListeners.map((e) => e.name).join(', ')}`,
+      `Listening for events: ${this.eventListeners
+        .map((e) => e.name)
+        .join(', ')}`,
     );
   }
 
-  async getEventListeners(): Promise<WEventListener[]> {
-    const eventListeners =
+  private async scheduleActions(): Promise<void> {
+    this.scheduledActions =
       this.type === 'PUBLIC'
-        ? await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
-            '/bot-public/event-listeners',
+        ? await FileUtils.getDefaultExportsFromDirectory<WScheduledAction>(
+            '/bot-public/scheduled-actions',
           )
-        : await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
-            '/bot-private/event-listeners',
+        : await FileUtils.getDefaultExportsFromDirectory<WScheduledAction>(
+            '/bot-private/scheduled-actions',
           );
 
-    return eventListeners;
-  }
-
-  private async scheduleActions(): Promise<void> {
-    const scheduledActions = await this.getScheduledActions();
-
-    if (scheduledActions.length === 0) {
+    if (this.scheduledActions.length === 0) {
       MainServer.log.info(`No scheduled actions found`);
       return;
     }
 
-    for (const scheduledAction of scheduledActions) {
+    for (const scheduledAction of this.scheduledActions) {
       scheduledAction.action();
     }
     MainServer.log.info(
-      `Scheduled actions: ${scheduledActions.map((s) => s.id).join(', ')}`,
+      `Scheduled actions: ${this.scheduledActions.map((s) => s.id).join(', ')}`,
     );
-  }
-
-  async getScheduledActions(): Promise<DiscordScheduledAction[]> {
-    const scheduledActions =
-      this.type === 'PUBLIC'
-        ? await FileUtils.getDefaultExportsFromDirectory<DiscordScheduledAction>(
-            '/bot-public/scheduled-actions',
-          )
-        : await FileUtils.getDefaultExportsFromDirectory<DiscordScheduledAction>(
-            '/bot-private/scheduled-actions',
-          );
-
-    return scheduledActions;
   }
 }
