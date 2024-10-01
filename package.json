@@ -11,7 +11,7 @@
     "format": "npx prettier . --write",
     "lint": "tslint -p tsconfig.json -c tslint.json 'src/**/*.ts'",
     "generate-types": "npx supabase gen types --lang=typescript --project-id uunhgbgnjwcdnhmgadra --schema public > src/types/generated/database.types.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && node build/__tests/index.js $*"
   },
   "keywords": [],
   "author": "WikiSubmission Developers",
