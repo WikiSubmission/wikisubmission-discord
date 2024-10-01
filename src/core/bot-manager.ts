@@ -62,7 +62,7 @@ export class WBotManager {
 
   private async login(): Promise<void> {
     const { token } = await this.getBotCredentials();
-    this.client.login(token);
+    await this.client.login(token);
     MainServer.log.info(
       `Initialized client. Username: "${this.client.user?.username}". ${this.client.guilds.cache.size} guilds.`,
     );
