@@ -10,7 +10,7 @@ import { parseDiscordError } from '../utils/parse-discord-error';
   try {
     // Start server.
     await loadEnvironmentVariables();
-    await MainServer.listen({ port: 3000, host: Host });
+    await MainServer.listen({ port: 3010, host: Host });
 
     // Start bots.
     const cliParams = getCliParams();
