@@ -50,6 +50,7 @@ export class WBotManager {
   }
 
   async start() {
+    MainServer.log.info(`Launching Bot: ${this.type}`);
     await this.login();
     await this.registerSlashCommands();
     await this.listenToClientEvents();
@@ -97,6 +98,12 @@ export class WBotManager {
     }
 
     const slashCommands = await this.getSlashCommands();
+
+    if (slashCommands.length === 0) {
+      MainServer.log.info(`No slash commands found`);
+      return;
+    }
+
     const { token, clientId } = await this.getBotCredentials();
     const rest = new REST().setToken(token);
 
@@ -164,6 +171,11 @@ export class WBotManager {
   private async listenToClientEvents(): Promise<void> {
     const eventListeners = await this.getEventListeners();
 
+    if (eventListeners.length === 0) {
+      MainServer.log.info(`No event listeners found`);
+      return;
+    }
+
     for (const eventListener of eventListeners) {
       this.client[eventListener.once ? 'once' : 'on'](
         eventListener.name,
@@ -197,6 +209,11 @@ export class WBotManager {
 
   private async scheduleActions(): Promise<void> {
     const scheduledActions = await this.getScheduledActions();
+
+    if (scheduledActions.length === 0) {
+      MainServer.log.info(`No scheduled actions found`);
+      return;
+    }
 
     for (const scheduledAction of scheduledActions) {
       scheduledAction.action();
