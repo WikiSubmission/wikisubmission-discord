@@ -64,7 +64,7 @@ export class WBotManager {
     const { token } = await this.getBotCredentials();
     await this.client.login(token);
     MainServer.log.info(
-      `Initialized client. Username: "${this.client.user?.username}". ${this.client.guilds.cache.size} guilds.`,
+      `Online as "${this.client.user?.username}". In ${this.client.guilds.cache.size} guilds.`,
     );
   }
 
