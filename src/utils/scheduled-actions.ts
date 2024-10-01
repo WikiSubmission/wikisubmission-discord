@@ -1,12 +1,12 @@
-import { DiscordScheduledAction } from '../types/WScheduledAction';
+import { WScheduledAction } from '../types/WScheduledAction';
 
 export class DiscordScheduledActions {
   public static actions: Map<
     string,
-    { intervalId: NodeJS.Timeout; action: DiscordScheduledAction }
+    { intervalId: NodeJS.Timeout; action: WScheduledAction }
   > = new Map();
 
-  static create(action: DiscordScheduledAction) {
+  static create(action: WScheduledAction) {
     const { id: name, interval, action: actionFunction } = action;
 
     let intervalMs: number;
