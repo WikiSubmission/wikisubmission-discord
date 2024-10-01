@@ -50,12 +50,14 @@ export class WBotManager {
   }
 
   async start() {
+    MainServer.log.info(`---`);
     MainServer.log.info(`Launching Bot: ${this.type}`);
     await this.login();
     await this.registerSlashCommands();
     await this.listenToClientEvents();
     await this.scheduleActions();
     MainServer.log.info(`Ready`);
+    MainServer.log.info(`---`);
   }
 
   private async login(): Promise<void> {
