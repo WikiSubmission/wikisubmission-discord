@@ -5,12 +5,13 @@ import { getCliParams } from '../utils/get-cli-params';
 import { WBotManager } from '../core/bot-manager';
 import { DiscordAPIError } from 'discord.js';
 import { parseDiscordError } from '../utils/parse-discord-error';
+import { Ports } from '../vars/ports';
 
 (async () => {
   try {
     // Start server.
     await loadEnvironmentVariables();
-    await MainServer.listen({ port: 3010, host: Host });
+    await MainServer.listen({ port: Ports.Root, host: Host });
 
     // Start bots.
     const cliParams = getCliParams();
