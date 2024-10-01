@@ -1,4 +1,4 @@
-export type DiscordScheduledAction = {
+export type WScheduledAction = {
   id: string;
   description: string;
   interval:
