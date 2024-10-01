@@ -68,7 +68,7 @@ export class WBotManager {
     );
   }
 
-  private async getBotCredentials(): Promise<{
+  async getBotCredentials(): Promise<{
     token: string;
     clientId: string;
   }> {
