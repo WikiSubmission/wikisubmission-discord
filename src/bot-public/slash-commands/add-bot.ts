@@ -22,7 +22,6 @@ export default function command(): WSlashCommand {
             .setColor("DarkButNotBlack"),
         ],
       });
-      return interaction;
     },
   };
 }
