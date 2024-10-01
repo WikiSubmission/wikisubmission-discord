@@ -1,4 +1,11 @@
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+import {
+  Awaitable,
+  Client,
+  ClientEvents,
+  GatewayIntentBits,
+  REST,
+  Routes,
+} from 'discord.js';
 import { cloudEnv } from '../utils/cloud-env';
 import { MainServer } from '../entrypoint/main-server';
 import { DiscordServers } from '../vars/discord-servers';
@@ -8,6 +15,8 @@ import { FileUtils } from '../utils/file-utils';
 import { parseDiscordError } from '../utils/parse-discord-error';
 import { getCliParams } from '../utils/get-cli-params';
 import { WScheduledAction } from '../types/WScheduledAction';
+import { authenticateMember } from '../utils/discord-verify-member';
+import { parseInteraction } from '../utils/discord-parse-interaction';
 
 export class WBotManager {
   public static public = new this('PUBLIC');
@@ -56,10 +65,24 @@ export class WBotManager {
   async start() {
     MainServer.log.info(`---`);
     MainServer.log.info(`Launching Bot: ${this.type}`);
+    
+    // Login (initialize client).
     await this.login();
+    
+    // Configure slash commands.
+    await this.setSlashCommands();
     await this.registerSlashCommands();
-    await this.listenToClientEvents();
-    await this.scheduleActions();
+    await this.listenForSlashCommands();
+    
+    // Configure event listeners.
+    await this.setEventListeners();
+    await this.activateEventListeners();
+
+    // Configure scheduled actions.
+    await this.setScheduledActions();
+    await this.activateScheduledActions();
+
+    // Ready.
     MainServer.log.info(`Ready`);
     MainServer.log.info(`---`);
   }
@@ -95,14 +118,7 @@ export class WBotManager {
         };
   }
 
-  private async registerSlashCommands(): Promise<void> {
-    const cliParams = getCliParams();
-
-    if (cliParams.includes('ncs') || cliParams.includes('no-command-sync')) {
-      MainServer.log.warn(`Skipping command sync (as requested)`);
-      return;
-    }
-
+  private async setSlashCommands(): Promise<void> {
     this.slashCommands =
       this.type === 'PUBLIC'
         ? await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
@@ -111,6 +127,15 @@ export class WBotManager {
         : await FileUtils.getDefaultExportsFromDirectory<WSlashCommand>(
             '/bot-private/slash-commands',
           );
+  }
+
+  private async registerSlashCommands(): Promise<void> {
+    const cliParams = getCliParams();
+
+    if (cliParams.includes('ncs') || cliParams.includes('no-command-sync')) {
+      MainServer.log.warn(`Skipping command sync (as requested)`);
+      return;
+    }
 
     if (this.slashCommands.length === 0) {
       MainServer.log.info(`No slash commands found`);
@@ -168,7 +193,7 @@ export class WBotManager {
     }
   }
 
-  private async listenToClientEvents(): Promise<void> {
+  private async setEventListeners(): Promise<void> {
     this.eventListeners =
       this.type === 'PUBLIC'
         ? await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
@@ -177,23 +202,22 @@ export class WBotManager {
         : await FileUtils.getDefaultExportsFromDirectory<WEventListener>(
             '/bot-private/event-listeners',
           );
+  }
 
+  private async activateEventListeners(): Promise<void> {
     if (this.eventListeners.length === 0) {
       MainServer.log.info(`No event listeners found`);
       return;
     }
 
     for (const eventListener of this.eventListeners) {
-      this.client[eventListener.once ? 'once' : 'on'](
+      this.addEventListener(
         eventListener.name,
         async () => {
-          try {
-            // @ts-ignore
-            await eventListener.handler();
-          } catch (error) {
-            parseDiscordError(error, `listenToClientEvents @ ${__dirname}`);
-          }
+          // @ts-ignore
+          await eventListener.handler();
         },
+        eventListener.once ? true : false,
       );
     }
     MainServer.log.info(
@@ -203,7 +227,7 @@ export class WBotManager {
     );
   }
 
-  private async scheduleActions(): Promise<void> {
+  private async setScheduledActions(): Promise<void> {
     this.scheduledActions =
       this.type === 'PUBLIC'
         ? await FileUtils.getDefaultExportsFromDirectory<WScheduledAction>(
@@ -212,7 +236,9 @@ export class WBotManager {
         : await FileUtils.getDefaultExportsFromDirectory<WScheduledAction>(
             '/bot-private/scheduled-actions',
           );
+  }
 
+  private async activateScheduledActions(): Promise<void> {
     if (this.scheduledActions.length === 0) {
       MainServer.log.info(`No scheduled actions found`);
       return;
@@ -224,5 +250,75 @@ export class WBotManager {
     MainServer.log.info(
       `Scheduled actions: ${this.scheduledActions.map((s) => s.id).join(', ')}`,
     );
+  }
+
+  async addEventListener<Event extends keyof ClientEvents>(
+    event: Event,
+    listener: (...args: ClientEvents[Event]) => Awaitable<void>,
+    once?: boolean,
+  ) {
+    this.client[once ? 'once' : 'on'](
+      event,
+      async (...args: ClientEvents[Event]) => {
+        try {
+          await listener(...args);
+        } catch (error) {
+          parseDiscordError(error, `${__dirname} (Event Listener)`);
+        }
+      },
+    );
+  }
+
+  private async listenForSlashCommands() {
+    this.addEventListener('interactionCreate', async (interaction) => {
+      if (interaction.isCommand()) {
+        const startTime = Date.now();
+        MainServer.log.info(parseInteraction(interaction));
+
+        for (const slashCommand of this.slashCommands) {
+          if (interaction.commandName === slashCommand.name) {
+            try {
+              // Early return case: unsupported DM use.
+              if (slashCommand.disabled_in_dm && !interaction.guild) {
+                await interaction.reply({
+                  content:
+                    '`This command has been disabled in DMs. Please try in a server.`',
+                  ephemeral: true,
+                });
+                return;
+              }
+
+              // Early return case: unauthorized user.
+              if (
+                slashCommand.access_control &&
+                !authenticateMember(
+                  interaction.member,
+                  slashCommand.access_control,
+                )
+              ) {
+                await interaction.reply({
+                  content: '`Unauthorized`',
+                  ephemeral: true,
+                });
+                return;
+              }
+
+              // Run slash command handler.
+              await slashCommand.handler(interaction);
+
+              // Record ping.
+              const endTime = Date.now();
+              MainServer.log.info(
+                `[${interaction.id}] completed in ${(
+                  endTime - startTime
+                ).toFixed(0)}ms`,
+              );
+            } catch (error) {
+              parseDiscordError(error, `${__dirname} (Slash Command Handler)`);
+            }
+          }
+        }
+      }
+    });
   }
 }
