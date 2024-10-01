@@ -26,6 +26,7 @@
     "fastify": "^5.0.0",
     "minimist": "^1.2.8",
     "node-cache": "^5.1.2",
+    "pino-pretty": "^11.2.2",
     "supabase": "^1.200.3"
   },
   "devDependencies": {
