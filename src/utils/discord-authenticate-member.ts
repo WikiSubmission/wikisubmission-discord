@@ -4,7 +4,7 @@ import { WDiscordAccessControlList } from '../types/WDiscordAccessControlList';
 
 export function authenticateMember(
   member: GuildMember | APIInteractionGuildMember | null,
-  accessControlList: WDiscordAccessControlList
+  accessControlList: WDiscordAccessControlList,
 ): boolean {
   if (!member || !member.roles) return false;
 

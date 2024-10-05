@@ -72,7 +72,7 @@ export class FileUtils {
     try {
       const targetDirectory = path.join(
         __dirname,
-        `../../${process.versions?.tsnode ? "src" : "build"}`,
+        `../../${process.versions?.tsnode ? 'src' : 'build'}`,
         directoryPath.startsWith('/') ? directoryPath : `/${directoryPath}`,
       );
 
@@ -85,13 +85,13 @@ export class FileUtils {
       const allFilesInTargetDirectory = fs.readdirSync(targetDirectory);
 
       for (const file of allFilesInTargetDirectory) {
-        if (opts?.enforcePrefix) { 
-          if (!file.startsWith(opts.enforcePrefix)) { 
+        if (opts?.enforcePrefix) {
+          if (!file.startsWith(opts.enforcePrefix)) {
             continue;
           }
         }
         const filePath = path.join(targetDirectory, file);
-        if (opts?.ignoreChildrenDirectories && (file.split("/").length - 1) > 1) { 
+        if (opts?.ignoreChildrenDirectories && file.split('/').length - 1 > 1) {
           continue;
         }
         const fileInfo = fs.statSync(filePath);
@@ -120,7 +120,9 @@ export class FileUtils {
 
       return exports;
     } catch (error: any) {
-      MainServer.log.error(`Failed to get default exports in directory "${directoryPath}": ${error.message || "--"}`);
+      MainServer.log.error(
+        `Failed to get default exports in directory "${directoryPath}": ${error.message || '--'}`,
+      );
       return [];
     }
   }

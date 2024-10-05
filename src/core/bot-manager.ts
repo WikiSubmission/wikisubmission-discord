@@ -15,7 +15,7 @@ import { FileUtils } from '../utils/file-utils';
 import { parseDiscordError } from '../utils/parse-discord-error';
 import { getCliParams } from '../utils/get-cli-params';
 import { WScheduledAction } from '../types/WScheduledAction';
-import { authenticateMember } from '../utils/discord-verify-member';
+import { authenticateMember } from '../utils/discord-authenticate-member';
 import { parseInteraction } from '../utils/discord-parse-interaction';
 
 export class WBotManager {
@@ -65,15 +65,15 @@ export class WBotManager {
   async start() {
     MainServer.log.info(`---`);
     MainServer.log.info(`Launching Bot: ${this.type}`);
-    
+
     // Login (initialize client).
     await this.login();
-    
+
     // Configure slash commands.
     await this.setSlashCommands();
     await this.registerSlashCommands();
     await this.listenForSlashCommands();
-    
+
     // Configure event listeners.
     await this.setEventListeners();
     await this.activateEventListeners();

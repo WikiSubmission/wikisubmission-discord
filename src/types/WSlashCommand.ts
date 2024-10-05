@@ -8,9 +8,7 @@ import { WDiscordAccessControlList } from './WDiscordAccessControlList';
 // A combined type of the actual command payload and some internal properties.
 export type WSlashCommand = RESTPostAPIApplicationCommandsJSONBody & {
   // Handler function to fire on a valid 'interactionCreate'.
-  handler: (
-    interaction: CommandInteraction,
-  ) => Promise<void>;
+  handler: (interaction: CommandInteraction) => Promise<void>;
 
   // Access control to impose before the handler is executed. Tells the user "Unauthorized" if check is not passed.
   access_control?: WDiscordAccessControlList;
