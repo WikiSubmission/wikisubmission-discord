@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf ./build",
-    "build": "TZ=America/Denver npm run clean && tsc",
+    "build": "npm run clean && tsc",
     "start": "npm run build && node build/entrypoint/index.js $*",
     "docker-build": "docker build -t wikisubmission-discord .",
     "docker": "docker stop wikisubmission-discord-container || true && docker rm wikisubmission-discord-container || true && npm run docker-build && docker run -p 3000:3000 -p 3001:3001 -p 3002:3002 -p 3003:3003 -p 3004:3004 --name wikisubmission-discord-container wikisubmission-discord",
