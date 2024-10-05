@@ -44,7 +44,7 @@ export class DiscordServers {
     const guild = await this.resolveGuild(guildId);
     return (
       guild?.channels.cache.get(channelId) ||
-      guild?.channels.fetch(channelId) ||
+      (await guild?.channels.fetch(channelId)) ||
       null
     );
   }
@@ -63,7 +63,7 @@ export class DiscordServers {
     const guild = await this.resolveGuild(guildId);
     return (
       guild?.members.cache.get(memberId) ||
-      guild?.members.fetch(memberId) ||
+      (await guild?.members.fetch(memberId)) ||
       null
     );
   }
