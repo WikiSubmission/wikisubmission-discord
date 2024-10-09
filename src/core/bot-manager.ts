@@ -8,7 +8,7 @@ import {
 } from 'discord.js';
 import { cloudEnv } from '../utils/cloud-env';
 import { MainServer } from '../entrypoint/main-server';
-import { DiscordServers } from '../vars/discord-servers';
+import { DiscordServers } from './discord-servers';
 import { WSlashCommand } from '../types/WSlashCommand';
 import { WEventListener } from '../types/WEventListener';
 import { FileUtils } from '../utils/file-utils';

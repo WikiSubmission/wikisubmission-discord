@@ -6,7 +6,7 @@ import {
   GuildMemberManager,
   OAuth2Guild,
 } from 'discord.js';
-import { WBotManager } from '../core/bot-manager';
+import { WBotManager } from './bot-manager';
 import { WDiscordServer } from '../types/WDiscordServer';
 
 export class DiscordServers {
