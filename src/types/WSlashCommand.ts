@@ -1,12 +1,11 @@
 import {
-  ButtonInteraction,
   CommandInteraction,
-  RESTPostAPIApplicationCommandsJSONBody,
+  RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js';
 import { WDiscordAccessControlList } from './WDiscordAccessControlList';
 
 // A combined type of the actual command payload and some internal properties.
-export type WSlashCommand = RESTPostAPIApplicationCommandsJSONBody & {
+export type WSlashCommand = RESTPostAPIChatInputApplicationCommandsJSONBody & {
   // Handler function to fire on a valid 'interactionCreate'.
   handler: (interaction: CommandInteraction) => Promise<void>;
 

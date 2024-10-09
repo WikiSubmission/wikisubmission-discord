@@ -213,9 +213,9 @@ export class WBotManager {
     for (const eventListener of this.eventListeners) {
       this.addEventListener(
         eventListener.name,
-        async () => {
+        async (...args) => {
           // @ts-ignore
-          await eventListener.handler();
+          await eventListener.handler(...args);
         },
         eventListener.once ? true : false,
       );

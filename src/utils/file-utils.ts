@@ -85,7 +85,7 @@ export class FileUtils {
       const allFilesInTargetDirectory = fs.readdirSync(targetDirectory);
 
       for (const file of allFilesInTargetDirectory) {
-        if (file.startsWith("_")) { 
+        if (file.startsWith('_')) {
           continue;
         }
         if (opts?.enforcePrefix) {
